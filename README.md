@@ -1,287 +1,316 @@
-Kafka KRaft Observability Stack
+# Kafka KRaft Observability Stack
 
-This repository provides a complete, production-style setup for a 3-node Apache Kafka 3.7.0 (KRaft mode) cluster with integrated Prometheus, Grafana, Alertmanager, Kafka Exporter, and Node Exporter monitoring.
+This repository provides a complete, production-grade setup for a **3-node Apache Kafka 3.7.0 (KRaft mode)** cluster with full observability using **Prometheus**, **Grafana**, **Alertmanager**, and **Kafka Exporter**.
 
-It’s ideal for DevOps engineers who want to deploy and monitor a distributed Kafka cluster with visibility into brokers, partitions, replication health, and system metrics.
+It’s designed for DevOps engineers who want to deploy, monitor, and maintain a highly available Kafka cluster with end-to-end visibility into brokers, partitions, and system metrics.
 
-⸻
+---
 
-🚀 Features
-	•	Kafka in KRaft mode (no Zookeeper)
-	•	3-node cluster configuration for resilience and leader election
-	•	JMX Exporter integration for per-broker metrics
-	•	Prometheus for metrics collection
-	•	Grafana for dashboards and visualizations
-	•	Alertmanager for basic alert routing
-	•	Kafka Exporter for consumer lag and topic metrics
-	•	Node Exporter for system-level monitoring
+## 🚀 Features
 
-⸻
+* **Kafka 3.7.0 (KRaft mode)** — No ZooKeeper required
+* **3-node cluster** for leader election and high availability
+* **JMX Exporter** for per-broker metrics
+* **Prometheus** for data collection
+* **Grafana** for visualization
+* **Alertmanager** for alerting
+* **Kafka Exporter** for consumer lag monitoring
+* **Node Exporter** for server-level metrics
 
-🧱 Architecture Overview
+---
 
-Kafka01 ─┐                ┌── Prometheus ──> Grafana
+## 🧱 Architecture Overview
+
+```
+Kafka01 ─┐                ┌── Prometheus ──> Grafana (Dashboards)
 Kafka02 ─┼─> 9092/7071 ─> │
-Kafka03 ─┘                └── Alertmanager
+Kafka03 ─┘                └── Alertmanager + Kafka Exporter
+```
 
-Each Kafka node runs:
-	•	kafka-server-start.sh with JMX agent at :7071
-	•	Exposes metrics to Prometheus running on the Monitoring VM
+| Node    | Role       | IP            | Services                                          |
+| ------- | ---------- | ------------- | ------------------------------------------------- |
+| kafka01 | Broker 1   | 192.168.1.221 | Kafka, JMX Exporter, Node Exporter                |
+| kafka02 | Broker 2   | 192.168.1.222 | Kafka, JMX Exporter, Node Exporter                |
+| kafka03 | Broker 3   | 192.168.1.223 | Kafka, JMX Exporter, Node Exporter                |
+| kafka04 | Monitoring | 192.168.1.224 | Prometheus, Grafana, Alertmanager, Kafka Exporter |
 
-Monitoring VM hosts:
-	•	Prometheus (9090)
-	•	Grafana (3000)
-	•	Alertmanager (9093)
-	•	Kafka Exporter (9308)
+---
 
-⸻
+## ⚙️ Prerequisites
 
-⚙️ Prerequisites
-	•	4 VMs total (3 Kafka brokers + 1 monitoring VM)
-	•	OS: Ubuntu 22.04 LTS or compatible
-	•	User: kafka (for Kafka service)
-	•	Ports open:
-	•	Kafka: 9092, 9093
-	•	JMX: 7071
-	•	Node Exporter: 9100
-	•	Monitoring VM: 9090, 3000, 9093, 9308
+* **Ubuntu 22.04 LTS** or similar
+* Java 17+ installed (`openjdk-17-jdk`)
+* Docker + Docker Compose (for monitoring VM)
+* Passwordless SSH (optional for automation)
+* Ports open: 9092, 7071, 9100, 9090, 3000, 9093, 9308
 
-⸻
+---
 
-🪶 Step 1: Clone Repository
+## 🪶 Step 1 — Clone Repository
 
-git clone https://github.com/your-username/kafka-kraft-observability-stack.git
+```bash
+git clone https://github.com/yourusername/kafka-kraft-observability-stack.git
 cd kafka-kraft-observability-stack
+```
 
+---
 
-⸻
+## 🧩 Step 2 — Install Kafka (on all 3 brokers)
 
-🧩 Step 2: Install Kafka (on all 3 brokers)
-
+```bash
 cd kafka/scripts
 sudo bash install_kafka_3_7.sh
+```
 
-This script will:
-	•	Create kafka user
-	•	Download and extract Kafka 3.7.0
-	•	Create necessary directories
-	•	Download JMX Prometheus agent
+This will:
 
-⸻
+* Create the `kafka` user
+* Download and extract Kafka 3.7.0
+* Create all required directories
+* Download JMX Prometheus agent
 
-🧩 Step 3: Configure each Broker
+---
 
-Edit /etc/kafka/server.properties
+## 🧩 Step 3 — Configure Each Broker
 
+Edit `/etc/kafka/server.properties`:
+
+```bash
 sudo nano /etc/kafka/server.properties
+```
 
-Set unique values on each node:
+### Example per node:
 
-Node 1 (Kafka01)
+**kafka01:**
 
+```
 node.id=1
 advertised.listeners=PLAINTEXT://192.168.1.221:9092
+```
 
-Node 2 (Kafka02)
+**kafka02:**
 
+```
 node.id=2
 advertised.listeners=PLAINTEXT://192.168.1.222:9092
+```
 
-Node 3 (Kafka03)
+**kafka03:**
 
+```
 node.id=3
 advertised.listeners=PLAINTEXT://192.168.1.223:9092
+```
 
-Keep other settings from kafka/configs/server.properties.template.
+Ensure these are common across all nodes:
 
-⸻
+```
+process.roles=broker,controller
+controller.listener.names=CONTROLLER
+listeners=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+controller.quorum.voters=1@192.168.1.221:9093,2@192.168.1.222:9093,3@192.168.1.223:9093
+```
 
-🧩 Step 4: Configure systemd Unit
+---
 
+## 🧩 Step 4 — Configure systemd Unit
+
+```bash
 sudo cp kafka/systemd/kafka.service /etc/systemd/system/kafka.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now kafka
+```
 
 Check status:
 
+```bash
 sudo systemctl status kafka -l
+```
 
-Check logs:
+If successful, verify metrics endpoint:
 
-journalctl -u kafka -n 100 --no-pager
-
-
-⸻
-
-🧩 Step 5: Enable JMX Exporter
-
-Each broker exposes metrics on port 7071:
-
+```bash
 curl -s http://localhost:7071/metrics | head
+```
 
-If metrics appear, Prometheus can scrape them.
+---
 
-⸻
+## 🧩 Step 5 — Initialize the Cluster
 
-📦 Step 6: Setup Monitoring VM
+Run only once from any broker:
 
-Install Docker + Docker Compose
+```bash
+/opt/kafka/bin/kafka-storage.sh random-uuid
+sudo -u kafka /opt/kafka/bin/kafka-storage.sh format \
+  -t <uuid> \
+  -c /etc/kafka/server.properties
+```
 
-sudo apt update
+---
+
+## 🧩 Step 6 — Setup Monitoring VM
+
+### Install Docker + Compose
+
+```bash
+sudo apt update -y
 sudo apt install -y docker.io docker-compose
+```
 
-Launch the stack
+### Start Monitoring Stack
 
+```bash
 cd monitoring
 sudo docker compose up -d
-
-This runs:
-	•	Prometheus on 9090
-	•	Alertmanager on 9093
-	•	Grafana on 3000
-	•	Kafka Exporter on 9308
+```
 
 Check containers:
 
+```bash
 docker ps
-
-
-⸻
-
-📈 Step 7: Verify Prometheus Targets
+```
 
 Visit:
 
-http://192.168.1.224:9090/targets
+* Prometheus: [http://192.168.1.224:9090](http://192.168.1.224:9090)
+* Grafana: [http://192.168.1.224:3000](http://192.168.1.224:3000)
+* Alertmanager: [http://192.168.1.224:9093](http://192.168.1.224:9093)
 
-All targets (kafka-brokers-jmx, kafka-exporter, node-exporter) should show UP.
+---
 
-⸻
+## 📈 Step 7 — Verify Prometheus Targets
 
-📊 Step 8: Configure Grafana
+Visit `http://192.168.1.224:9090/targets` and ensure:
 
-Open Grafana in your browser:
+* kafka-brokers-jmx — UP
+* kafka-exporter — UP
+* node-exporter — UP
 
-http://192.168.1.224:3000
+---
 
-Default credentials:
+## 📊 Step 8 — Import Grafana Dashboard
 
+Login Grafana:
+
+```
 User: admin
 Password: admin
+```
 
-Go to Dashboards → Import → Upload JSON → select monitoring/grafana/dashboards/kafka.json.
+Then navigate to:
+**Dashboards → Import → Upload File →** `monitoring/grafana/dashboards/kafka.json`
 
-Your Kafka metrics (topics, partitions, replication, controller health, consumer lag, etc.) should appear within a minute.
+You’ll now see broker, topic, and consumer lag metrics in real time.
 
-⸻
+---
 
-⚠️ Step 9: Test Alerts
+## ⚠️ Step 9 — Verify Alerts
 
-Open Prometheus:
+Check active alerts:
 
+```
 http://192.168.1.224:9090/alerts
+```
 
-Trigger alerts by stopping a Kafka broker temporarily.
+Try stopping a Kafka broker to see alerts for:
 
-⸻
+* Offline partitions
+* No active controller
+* Under-replicated partitions
 
-🧭 Step 10: Node Exporter on Brokers
+---
 
+## 🧭 Step 10 — Install Node Exporter (on brokers)
+
+```bash
 cd tools
 sudo bash start_node_exporter.sh
+```
 
-This will install Node Exporter (port 9100) and register it as a systemd service.
+Verify:
 
-Check:
+```bash
+curl -s http://localhost:9100/metrics | head
+```
 
-curl localhost:9100/metrics | head
+---
 
+## 🧰 Useful Kafka Commands
 
-⸻
+**Describe cluster status:**
 
-✅ Verification Checklist
-
-Component	Check	Command
-Kafka Service	Running	systemctl status kafka
-JMX Metrics	Exposed	curl :7071/metrics
-Prometheus	Active	curl :9090/-/healthy
-Grafana	Accessible	http://MON_IP:3000
-Node Exporter	Active	curl :9100/metrics
-
-
-⸻
-
-🧰 Useful Commands
-
-Describe cluster quorum:
-
+```bash
 /opt/kafka/bin/kafka-metadata-quorum.sh --bootstrap-server 192.168.1.221:9092 describe --status
+```
 
-List topics:
+**List topics:**
 
+```bash
 /opt/kafka/bin/kafka-topics.sh --bootstrap-server 192.168.1.221:9092 --list
+```
 
-Produce messages:
+**Produce messages:**
 
+```bash
 /opt/kafka/bin/kafka-console-producer.sh --broker-list 192.168.1.221:9092 --topic test.topic
+```
 
-Consume messages:
+**Consume messages:**
 
+```bash
 /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server 192.168.1.221:9092 --topic test.topic --from-beginning
+```
 
+---
 
-⸻
+## ✅ Verification Checklist
 
-🧠 How It Works
-	•	JMX Exporter exposes broker metrics on port 7071.
-	•	Prometheus scrapes these metrics every 15 seconds.
-	•	Grafana visualizes Prometheus data using dashboards.
-	•	Kafka Exporter provides consumer lag & topic data.
-	•	Alertmanager triggers notifications for cluster anomalies.
+| Component     | Check      | Command                  |
+| ------------- | ---------- | ------------------------ |
+| Kafka         | Active     | `systemctl status kafka` |
+| JMX Exporter  | Working    | `curl :7071/metrics`     |
+| Prometheus    | Healthy    | `curl :9090/-/healthy`   |
+| Grafana       | Accessible | `:3000`                  |
+| Node Exporter | Running    | `curl :9100/metrics`     |
 
-⸻
+---
 
-🧩 Example Alerts
+## 🧠 How It Works
 
-Alert	Condition	Severity
-KafkaNoActiveController	activecontrollercount < 1	Critical
-KafkaUnderReplicatedPartitions	underreplicatedpartitions > 0	Warning
-KafkaOfflinePartitions	offlinepartitionscount > 0	Critical
-KafkaExporterDown	up{job="kafka-exporter"} == 0	Critical
+* Kafka exposes metrics through JMX Exporter (`7071`)
+* Prometheus scrapes all metrics every 15s
+* Grafana visualizes real-time broker data
+* Alertmanager handles cluster health alerts
+* Kafka Exporter reports consumer group lag
 
+---
 
-⸻
+## 🧾 Troubleshooting
 
-🧾 Troubleshooting
+* **Kafka not starting:** Check `/var/log/kafka` or `journalctl -u kafka -xe`
+* **Prometheus no data:** Verify `prometheus.yml` targets and firewall
+* **Grafana empty panels:** Check datasource URL and Prometheus connection
+* **Alertmanager not firing:** Validate alert rules under `monitoring/prometheus/alerts/`
 
-No metrics in Grafana:
-	•	Check Prometheus targets page.
-	•	Ensure firewall allows 7071, 9308, and 9100 ports.
+---
 
-Kafka service restarting repeatedly:
-	•	Verify JMX config file /opt/jmx/kafka.yml syntax.
-	•	Check journal logs: journalctl -u kafka -xe
+## 🏁 Cleanup
 
-Prometheus not scraping:
-	•	Check Prometheus log output: docker logs prometheus
-
-⸻
-
-🏁 Cleanup
-
+```bash
 cd monitoring
 sudo docker compose down -v
 sudo systemctl disable --now kafka
+```
 
+---
 
-⸻
+## 📜 License
 
-💡 Credits
+MIT License — free to use, modify, and deploy.
 
-Built with ❤️ by DevOps engineers for Kafka monitoring enthusiasts.
+---
 
-⸻
+**Repository:** kafka-kraft-observability-stack
+**Author:** Mohammad Imrul Hasan
+**Role:** DevOps & DevSecOps Engineer
 
-Repository: kafka-kraft-observability-stack
-
-License: MIT
