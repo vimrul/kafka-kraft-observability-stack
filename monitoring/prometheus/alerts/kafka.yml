@@ -1,0 +1,27 @@
+groups:
+- name: kafka-basic
+  rules:
+  - alert: KafkaNoActiveController
+    expr: sum(kafka_controller_kafkacontroller_activecontrollercount) < 1
+    for: 1m
+    labels: { severity: critical }
+    annotations:
+      summary: "No active controller in Kafka cluster"
+  - alert: KafkaUnderReplicatedPartitions
+    expr: sum(kafka_server_replicamanager_underreplicatedpartitions) > 0
+    for: 5m
+    labels: { severity: warning }
+    annotations:
+      summary: "Under-replicated partitions > 0"
+  - alert: KafkaOfflinePartitions
+    expr: sum(kafka_controller_kafkacontroller_offlinepartitionscount) > 0
+    for: 2m
+    labels: { severity: critical }
+    annotations:
+      summary: "Offline partitions > 0"
+  - alert: KafkaExporterDown
+    expr: up{job="kafka-exporter"} == 0
+    for: 2m
+    labels: { severity: critical }
+    annotations:
+      summary: "kafka-exporter is down"

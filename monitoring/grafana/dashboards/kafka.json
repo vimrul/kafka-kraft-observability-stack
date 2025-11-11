@@ -1,0 +1,15 @@
+{
+  "annotations":{"list":[]},
+  "editable": true,
+  "fiscalYearStartMonth": 1,
+  "graphTooltip": 0,
+  "panels": [],
+  "refresh": "30s",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["kafka","kraft","prometheus"],
+  "templating": {"list":[]},
+  "time": {"from":"now-1h","to":"now"},
+  "title": "Kafka (placeholder)",
+  "version": 1
+}

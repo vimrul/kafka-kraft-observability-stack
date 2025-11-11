@@ -1,0 +1,19 @@
+[Unit]
+Description=Apache Kafka 3.7.0 (KRaft mode)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kafka
+Group=kafka
+Environment="KAFKA_HEAP_OPTS=-Xms1G -Xmx1G"
+Environment="KAFKA_OPTS=-javaagent:/opt/jmx_prometheus_javaagent.jar=7071:/opt/jmx/kafka.yml -Dcom.sun.management.jmxremote"
+ExecStart=/bin/sh -c '/opt/kafka/bin/kafka-server-start.sh /etc/kafka/server.properties'
+ExecStop=/opt/kafka/bin/kafka-server-stop.sh
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=100000
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+  - pattern: "kafka.server<type=(.+), name=(.+)PerSec\\w*, topic=(.+)><>Count"
+    name: kafka_server_$1_$2_total
+    labels: { topic: "$3" }
+    type: COUNTER
+  - pattern: "kafka.server<type=(.+), name=(.+)><>Value"
+    name: kafka_server_$1_$2
+    type: GAUGE
+  - pattern: "kafka.controller<type=(.+), name=(.+)><>Value"
+    name: kafka_controller_$1_$2
+    type: GAUGE
+  - pattern: "kafka.network<type=(.+), name=(.+)><>Value"
+    name: kafka_network_$1_$2
+    type: GAUGE
+  - pattern: "kafka.network<type=RequestMetrics, name=TotalTimeMs, request=(.+), quantile=(.+)><>Value"
+    name: kafka_network_requestmetrics_totaltimems
+    labels: { request: "$1", quantile: "$2" }
+    type: GAUGE
+  - pattern: ".*"
