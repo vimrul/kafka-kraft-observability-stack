@@ -29,10 +29,10 @@ Kafka03 ─┘                └── Alertmanager + Kafka Exporter
 
 | Node    | Role       | IP            | Services                                          |
 | ------- | ---------- | ------------- | ------------------------------------------------- |
-| kafka01 | Broker 1   | 192.168.1.221 | Kafka, JMX Exporter, Node Exporter                |
-| kafka02 | Broker 2   | 192.168.1.222 | Kafka, JMX Exporter, Node Exporter                |
-| kafka03 | Broker 3   | 192.168.1.223 | Kafka, JMX Exporter, Node Exporter                |
-| kafka04 | Monitoring | 192.168.1.224 | Prometheus, Grafana, Alertmanager, Kafka Exporter |
+| kafka01 | Broker 1   | 192.168.1.100 | Kafka, JMX Exporter, Node Exporter                |
+| kafka02 | Broker 2   | 192.168.1.101 | Kafka, JMX Exporter, Node Exporter                |
+| kafka03 | Broker 3   | 192.168.1.102 | Kafka, JMX Exporter, Node Exporter                |
+| kafka04 | Monitoring | 192.168.1.103 | Prometheus, Grafana, Alertmanager, Kafka Exporter |
 
 ---
 
@@ -85,21 +85,21 @@ sudo nano /etc/kafka/server.properties
 
 ```
 node.id=1
-advertised.listeners=PLAINTEXT://192.168.1.221:9092
+advertised.listeners=PLAINTEXT://192.168.1.100:9092
 ```
 
 **kafka02:**
 
 ```
 node.id=2
-advertised.listeners=PLAINTEXT://192.168.1.222:9092
+advertised.listeners=PLAINTEXT://192.168.1.101:9092
 ```
 
 **kafka03:**
 
 ```
 node.id=3
-advertised.listeners=PLAINTEXT://192.168.1.223:9092
+advertised.listeners=PLAINTEXT://192.168.1.102:9092
 ```
 
 Ensure these are common across all nodes:
@@ -108,7 +108,7 @@ Ensure these are common across all nodes:
 process.roles=broker,controller
 controller.listener.names=CONTROLLER
 listeners=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-controller.quorum.voters=1@192.168.1.221:9093,2@192.168.1.222:9093,3@192.168.1.223:9093
+controller.quorum.voters=1@192.168.1.100:9093,2@192.168.1.101:9093,3@192.168.1.102:9093
 ```
 
 ---
@@ -172,15 +172,15 @@ docker ps
 
 Visit:
 
-* Prometheus: [http://192.168.1.224:9090](http://192.168.1.224:9090)
-* Grafana: [http://192.168.1.224:3000](http://192.168.1.224:3000)
-* Alertmanager: [http://192.168.1.224:9093](http://192.168.1.224:9093)
+* Prometheus: [http://192.168.1.103:9090](http://192.168.1.103:9090)
+* Grafana: [http://192.168.1.103:3000](http://192.168.1.103:3000)
+* Alertmanager: [http://192.168.1.103:9093](http://192.168.1.103:9093)
 
 ---
 
 ## 📈 Step 7 — Verify Prometheus Targets
 
-Visit `http://192.168.1.224:9090/targets` and ensure:
+Visit `http://192.168.1.103:9090/targets` and ensure:
 
 * kafka-brokers-jmx — UP
 * kafka-exporter — UP
@@ -209,7 +209,7 @@ You’ll now see broker, topic, and consumer lag metrics in real time.
 Check active alerts:
 
 ```
-http://192.168.1.224:9090/alerts
+http://192.168.1.103:9090/alerts
 ```
 
 Try stopping a Kafka broker to see alerts for:
@@ -240,25 +240,25 @@ curl -s http://localhost:9100/metrics | head
 **Describe cluster status:**
 
 ```bash
-/opt/kafka/bin/kafka-metadata-quorum.sh --bootstrap-server 192.168.1.221:9092 describe --status
+/opt/kafka/bin/kafka-metadata-quorum.sh --bootstrap-server 192.168.1.100:9092 describe --status
 ```
 
 **List topics:**
 
 ```bash
-/opt/kafka/bin/kafka-topics.sh --bootstrap-server 192.168.1.221:9092 --list
+/opt/kafka/bin/kafka-topics.sh --bootstrap-server 192.168.1.100:9092 --list
 ```
 
 **Produce messages:**
 
 ```bash
-/opt/kafka/bin/kafka-console-producer.sh --broker-list 192.168.1.221:9092 --topic test.topic
+/opt/kafka/bin/kafka-console-producer.sh --broker-list 192.168.1.100:9092 --topic test.topic
 ```
 
 **Consume messages:**
 
 ```bash
-/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server 192.168.1.221:9092 --topic test.topic --from-beginning
+/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server 192.168.1.100:9092 --topic test.topic --from-beginning
 ```
 
 ---

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO="kafka-kraft-observability-stack"
-MON_IP="192.168.1.224"
+MON_IP="192.168.1.103"
 BROKER_1="192.168.1.100"
 BROKER_2="192.168.1.101"
 BROKER_3="192.168.1.102"
@@ -37,8 +37,8 @@ Production-style starter for a **3-node Apache Kafka 3.7.0 (KRaft)** cluster wit
 - Minimal scripts to install Kafka and enable JMX on each broker
 
 ## Network (example)
-- Brokers: `192.168.1.221-223`
-- Monitoring VM: `192.168.1.224` (Prometheus:9090, Grafana:3000, Alertmanager:9093)
+- Brokers: `192.168.1.100-223`
+- Monitoring VM: `192.168.1.103` (Prometheus:9090, Grafana:3000, Alertmanager:9093)
 
 ## Quick start
 1) **On each broker**: install Kafka + enable JMX (see `kafka/scripts/`), create data/log dirs, set `broker.id` and `listeners`.
