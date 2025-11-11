@@ -3,5 +3,5 @@ datasources:
   - name: prometheus
     type: prometheus
     access: proxy
-    url: http://192.168.1.224:9090
+    url: http://<monitoring-vm-IP>:9090
     isDefault: true
